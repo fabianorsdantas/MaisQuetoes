@@ -1,71 +1,101 @@
 import { useEffect, useState } from "react";
-import { getQuestoes, deleteQuestao, updateQuestao } from "../data/db";
-import { Link } from "react-router-dom";
 
 export default function Home() {
   const [questoes, setQuestoes] = useState([]);
+  const [indiceAtual, setIndiceAtual] = useState(0);
   const [resposta, setResposta] = useState(null);
-  const [mensagem, setMensagem] = useState("");
+  const [feedback, setFeedback] = useState(null);
 
+  // Carregar questões do LocalStorage (ou IndexedDB)
   useEffect(() => {
-    carregar();
+    const salvas = JSON.parse(localStorage.getItem("questoes")) || [];
+    setQuestoes(salvas);
   }, []);
 
-  async function carregar() {
-    const data = await getQuestoes();
-    setQuestoes(data);
+  if (questoes.length === 0) {
+    return (
+      <div className="container mt-4">
+        <h2>Banco de Questões</h2>
+        <p>⚠️ Nenhuma questão cadastrada ainda. Vá em <strong>Cadastrar</strong> para adicionar.</p>
+      </div>
+    );
   }
 
-  function responder(questao, opcao) {
-    setResposta(opcao);
-    if (opcao === questao.correta) {
-      setMensagem("Parabéns");
-      updateQuestao({ ...questao, favorita: true });
+  const questao = questoes[indiceAtual];
+
+  function verificarResposta() {
+    if (resposta === questao.respostaCorreta) {
+      setFeedback({ tipo: "success", mensagem: "🎉 Parabéns! Você acertou a questão." });
     } else {
-      setMensagem("Revise esse item");
+      setFeedback({ tipo: "danger", mensagem: "❌ Revise esse item." });
     }
   }
 
-  async function excluir(id) {
-    await deleteQuestao(id);
-    carregar();
+  function avancar() {
+    if (indiceAtual < questoes.length - 1) {
+      setIndiceAtual(indiceAtual + 1);
+      resetarQuestao();
+    }
+  }
+
+  function voltar() {
+    if (indiceAtual > 0) {
+      setIndiceAtual(indiceAtual - 1);
+      resetarQuestao();
+    }
+  }
+
+  function resetarQuestao() {
+    setResposta(null);
+    setFeedback(null);
   }
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-4">Questões</h1>
-      {questoes.map((q) => (
-        <div key={q.id} className="bg-white shadow p-4 mb-4 rounded">
-          <h2 className="font-bold">{q.disciplina}</h2>
-          <p>{q.enunciado}</p>
-          <div className="mt-2">
-            {q.opcoes.map((op, idx) => (
-              <button
-                key={idx}
-                onClick={() => responder(q, op)}
-                className={`px-3 py-1 m-1 rounded border ${
-                  resposta === op
-                    ? op === q.correta
-                      ? "bg-green-300"
-                      : "bg-red-300"
-                    : "bg-gray-200"
-                }`}
-              >
-                {op}
-              </button>
-            ))}
+    <div className="container mt-4">
+      <h2 className="mb-4">Questão {indiceAtual + 1} de {questoes.length}</h2>
+
+      <div className="card p-4 shadow">
+        <p><strong>Disciplina:</strong> {questao.disciplina}</p>
+        <p><strong>Enunciado:</strong> {questao.enunciado}</p>
+
+        {questao.opcoes.map((opcao, i) => (
+          <div className="form-check" key={i}>
+            <input
+              className="form-check-input"
+              type="radio"
+              name="resposta"
+              value={opcao}
+              checked={resposta === opcao}
+              onChange={(e) => setResposta(e.target.value)}
+            />
+            <label className="form-check-label">{opcao}</label>
           </div>
-          {mensagem && <p className="mt-2 font-bold">{mensagem}</p>}
-          <div className="flex gap-2 mt-3">
-            <Link to={`/cadastrar/${q.id}`} className="bg-yellow-400 px-3 py-1 rounded">
-              Editar
-            </Link>
-            <button onClick={() => excluir(q.id)} className="bg-red-500 text-white px-3 py-1 rounded">
-              Excluir
-            </button>
+        ))}
+
+        <button
+          className="btn btn-primary mt-3"
+          onClick={verificarResposta}
+          disabled={!resposta}
+        >
+          Confirmar
+        </button>
+
+        {feedback && (
+          <div className={`alert alert-${feedback.tipo} mt-3`} role="alert">
+            {feedback.mensagem}
           </div>
+        )}
+
+        {/* Navegação entre questões */}
+        <div className="d-flex justify-content-between mt-4">
+          <button className="btn btn-secondary" onClick={voltar} disabled={indiceAtual === 0}>
+            ⬅️ Voltar
+          </button>
+          <button className="btn btn-secondary" onClick={avancar} disabled={indiceAtual === questoes.length - 1}>
+            Avançar ➡️
+          </button>
         </div>
-      ))}
+      </div>
     </div>
   );
 }

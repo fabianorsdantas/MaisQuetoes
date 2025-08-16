@@ -1,99 +1,158 @@
-import { useState, useEffect } from "react";
-import { addQuestao, getQuestaoById, updateQuestao } from "../data/db";
-import { useNavigate, useParams } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+
+const defaultDisciplines = [
+  "Geral",
+  "Matemática",
+  "Português",
+  "Informática",
+  "Direito",
+  "Física",
+  "Química",
+  "Biologia",
+];
+
+function uid() {
+  return Math.random().toString(36).slice(2, 10);
+}
 
 export default function Cadastrar() {
   const navigate = useNavigate();
-  const { id } = useParams();
-  const [form, setForm] = useState({
-    disciplina: "",
-    tipo: "multipla",
-    enunciado: "",
-    opcoes: ["", ""],
-    correta: "",
-  });
+  const location = useLocation();
+  const editarId = location.state?.editarId;
+
+  const [disciplina, setDisciplina] = useState("Geral");
+  const [enunciado, setEnunciado] = useState("");
+  const [opcoes, setOpcoes] = useState([{ id: uid(), texto: "" }, { id: uid(), texto: "" }]);
+  const [respostaCorreta, setRespostaCorreta] = useState("");
 
   useEffect(() => {
-    if (id) {
-      getQuestaoById(Number(id)).then((data) => {
-        if (data) setForm(data);
-      });
+    if (editarId != null) {
+      const list = JSON.parse(localStorage.getItem("questoes")) || [];
+      const questao = list.find(q => q.id === editarId);
+      if (questao) {
+        setDisciplina(questao.disciplina);
+        setEnunciado(questao.enunciado);
+        setOpcoes(questao.opcoes);
+        setRespostaCorreta(questao.respostaCorreta);
+      }
     }
-  }, [id]);
+  }, [editarId]);
 
-  function handleChange(e) {
-    const { name, value } = e.target;
-    setForm({ ...form, [name]: value });
-  }
+  const adicionarOpcao = () => {
+    setOpcoes(prev => [...prev, { id: uid(), texto: "" }]);
+  };
 
-  function handleOpcaoChange(index, value) {
-    const novas = [...form.opcoes];
-    novas[index] = value;
-    setForm({ ...form, opcoes: novas });
-  }
+  const alterarOpcao = (id, valor) => {
+    setOpcoes(prev => prev.map(o => o.id === id ? { ...o, texto: valor } : o));
+  };
 
-  function addOpcao() {
-    setForm({ ...form, opcoes: [...form.opcoes, ""] });
-  }
+  const removerOpcao = (id) => {
+    setOpcoes(prev => prev.filter(o => o.id !== id));
+    if (respostaCorreta === id) setRespostaCorreta("");
+  };
 
-  async function handleSubmit(e) {
-    e.preventDefault();
-    if (id) {
-      await updateQuestao(form);
+  const salvar = () => {
+    // Validações
+    if (!disciplina.trim()) return alert("Informe a disciplina.");
+    if (!enunciado.trim()) return alert("Informe o enunciado.");
+    const opcoesValidas = opcoes.filter(o => o.texto.trim());
+    if (opcoesValidas.length < 2) return alert("Informe pelo menos duas opções.");
+    if (!respostaCorreta) return alert("Selecione a resposta correta.");
+
+    const list = JSON.parse(localStorage.getItem("questoes")) || [];
+
+    if (editarId != null) {
+      // Editar
+      const novaLista = list.map(q =>
+        q.id === editarId
+          ? { ...q, disciplina, enunciado, opcoes: opcoesValidas, respostaCorreta }
+          : q
+      );
+      localStorage.setItem("questoes", JSON.stringify(novaLista));
+      alert("Questão atualizada com sucesso!");
     } else {
-      await addQuestao({ ...form, favorita: false });
+      // Novo cadastro
+      const novaQuestao = {
+        id: Date.now(),
+        disciplina,
+        enunciado,
+        opcoes: opcoesValidas,
+        respostaCorreta,
+        favorito: false
+      };
+      list.push(novaQuestao);
+      localStorage.setItem("questoes", JSON.stringify(list));
+      alert("Questão cadastrada com sucesso!");
     }
-    navigate("/");
-  }
+
+    navigate("/listar");
+  };
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">{id ? "Editar Questão" : "Cadastrar Questão"}</h1>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <input
-          className="border p-2 w-full"
-          name="disciplina"
-          placeholder="Disciplina"
-          value={form.disciplina}
-          onChange={handleChange}
-          required
-        />
-        <select name="tipo" value={form.tipo} onChange={handleChange} className="border p-2 w-full">
-          <option value="multipla">Múltipla Escolha</option>
-          <option value="certoerrado">Certo/Errado</option>
-        </select>
-        <textarea
-          className="border p-2 w-full"
-          name="enunciado"
-          placeholder="Enunciado"
-          value={form.enunciado}
-          onChange={handleChange}
-          required
-        />
-        {form.opcoes.map((opcao, index) => (
-          <input
-            key={index}
-            className="border p-2 w-full"
-            placeholder={`Opção ${index + 1}`}
-            value={opcao}
-            onChange={(e) => handleOpcaoChange(index, e.target.value)}
+      <h2>{editarId != null ? "Editar Questão" : "Cadastrar Nova Questão"}</h2>
+      <div className="card p-4">
+        <div className="mb-3">
+          <label className="form-label">Disciplina</label>
+          <select
+            className="form-select"
+            value={disciplina}
+            onChange={e => setDisciplina(e.target.value)}
+          >
+            {defaultDisciplines.map(d => (
+              <option key={d} value={d}>{d}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="mb-3">
+          <label className="form-label">Enunciado</label>
+          <textarea
+            className="form-control"
+            value={enunciado}
+            onChange={e => setEnunciado(e.target.value)}
           />
-        ))}
-        <button type="button" onClick={addOpcao} className="bg-gray-300 px-4 py-2 rounded">
-          Adicionar opção
-        </button>
-        <input
-          className="border p-2 w-full"
-          name="correta"
-          placeholder="Resposta Correta"
-          value={form.correta}
-          onChange={handleChange}
-          required
-        />
-        <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded">
-          Salvar
-        </button>
-      </form>
+        </div>
+
+        <div className="mb-3">
+          <label className="form-label">Opções de Resposta</label>
+          {opcoes.map((o, idx) => (
+            <div key={o.id} className="input-group mb-2">
+              <span className="input-group-text">
+                <input
+                  type="radio"
+                  name="correta"
+                  checked={respostaCorreta === o.id}
+                  onChange={() => setRespostaCorreta(o.id)}
+                />
+              </span>
+              <input
+                type="text"
+                className="form-control"
+                placeholder={`Opção ${idx + 1}`}
+                value={o.texto}
+                onChange={e => alterarOpcao(o.id, e.target.value)}
+              />
+              <button
+                className="btn btn-outline-danger"
+                onClick={() => removerOpcao(o.id)}
+              >
+                ❌
+              </button>
+            </div>
+          ))}
+          <button className="btn btn-outline-primary" onClick={adicionarOpcao}>
+            ➕ Adicionar Opção
+          </button>
+        </div>
+
+        <div className="mt-3">
+          <button className="btn btn-success" onClick={salvar}>
+            {editarId != null ? "Salvar Alterações" : "Cadastrar Questão"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

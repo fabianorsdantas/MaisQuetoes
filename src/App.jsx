@@ -1,24 +1,22 @@
+import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar";
-import Home from "./pages/Home";
 import Cadastrar from "./pages/Cadastrar";
-import Favorites from "./pages/Favorites";
+import Resolver from "./pages/Resolver";
+import Listar from "./pages/Listar";
+import Favoritos from "./pages/Favoritos";
 
-function App() {
+export default function App() {
   return (
     <Router>
-      <div className="min-h-screen bg-gray-100">
-        <Navbar />
-        <div className="container mx-auto p-4">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/cadastrar" element={<Cadastrar />} />
-            <Route path="/favorites" element={<Favorites />} />
-          </Routes>
-        </div>
-      </div>
+      <Navbar />
+      <Routes>
+        <Route path="/" element={<Cadastrar />} />
+        <Route path="/cadastrar" element={<Cadastrar />} />
+        <Route path="/resolver/:id" element={<Resolver />} />
+        <Route path="/listar" element={<Listar />} />
+        <Route path="/favoritos" element={<Favoritos />} />
+      </Routes>
     </Router>
   );
 }
-
-export default App;

@@ -1,25 +1,27 @@
-import { Link, useLocation } from "react-router-dom";
+import React from "react";
+import { Link, NavLink } from "react-router-dom";
 
 export default function Navbar() {
-  const location = useLocation();
-
-  const linkStyle = (path) =>
-    location.pathname === path
-      ? "text-blue-500 font-bold"
-      : "text-gray-700 hover:text-blue-400";
-
   return (
-    <nav className="bg-white shadow-md">
-      <div className="container mx-auto flex justify-between p-4">
-        <Link to="/" className={linkStyle("/")}>
-          Home
-        </Link>
-        <Link to="/cadastrar" className={linkStyle("/cadastrar")}>
-          Cadastrar Questão
-        </Link>
-        <Link to="/favoritos" className={linkStyle("/favoritos")}>
-          Favoritos
-        </Link>
+    <nav className="navbar navbar-expand-lg navbar-dark bg-primary">
+      <div className="container">
+        <Link className="navbar-brand" to="/">Caderno de Questões</Link>
+        <div className="collapse navbar-collapse">
+          <ul className="navbar-nav ms-auto">
+            <li className="nav-item">
+              <NavLink className="nav-link" to="/resolver">Resolver</NavLink>
+            </li>
+            <li className="nav-item">
+              <NavLink className="nav-link" to="/cadastrar">Cadastrar</NavLink>
+            </li>
+            <li className="nav-item">
+              <NavLink className="nav-link" to="/listar">Gerenciar Questões</NavLink>
+            </li>
+            <li className="nav-item">
+              <NavLink className="nav-link" to="/favoritos">Favoritos</NavLink>
+            </li>
+          </ul>
+        </div>
       </div>
     </nav>
   );
